@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Virtual Memory & Address Translation Simulator</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+<header class="topbar">
+
+    <div>
+        <h1>Virtual Memory Simulator</h1>
+        <p>
+            Virtual Address → Page Table → Physical Address
+        </p>
+    </div>
+
+    <div class="top-status">
+        <span class="status-dot"></span>
+        <span id="systemStatus">Ready</span>
+    </div>
+
+</header>
+
+
+<main class="container">
+
+    <!-- =========================================
+         CONFIGURATION
+    ========================================== -->
+
+    <section class="panel">
+
+        <div class="panel-heading">
+            <div>
+                <h2>Memory Configuration</h2>
+                <p>Configure the virtual and physical memory</p>
+            </div>
+        </div>
+
+        <div class="config-grid">
+
+            <div class="input-group">
+                <label for="pageSize">
+                    Page Size
+                </label>
+
+                <select id="pageSize">
+                    <option value="64">64 Bytes</option>
+                    <option value="128">128 Bytes</option>
+                    <option value="256" selected>256 Bytes</option>
+                    <option value="512">512 Bytes</option>
+                    <option value="1024">1024 Bytes</option>
+                </select>
+            </div>
+
+
+            <div class="input-group">
+                <label for="virtualPages">
+                    Virtual Pages
+                </label>
+
+                <input
+                    type="number"
+                    id="virtualPages"
+                    min="4"
+                    max="16"
+                    value="8"
+                >
+            </div>
+
+
+            <div class="input-group">
+                <label for="physicalFrames">
+                    Physical Frames
+                </label>
+
+                <input
+                    type="number"
+                    id="physicalFrames"
+                    min="2"
+                    max="8"
+                    value="4"
+                >
+            </div>
+
+
+            <div class="input-group">
+                <label for="algorithm">
+                    Replacement Algorithm
+                </label>
+
+                <select id="algorithm">
+                    <option value="FIFO">FIFO</option>
+                    <option value="LRU">LRU</option>
+                    <option value="OPTIMAL">Optimal</option>
+                </select>
+            </div>
+
+        </div>
+
+
+        <div class="control-buttons">
+
+            <button
+                id="newSimulationBtn"
+                class="btn primary"
+            >
+                New Simulation
+            </button>
+
+            <button
+                id="randomBtn"
+                class="btn secondary"
+            >
+                Generate Reference
+            </button>
+
+            <button
+                id="resetBtn"
+                class="btn danger"
+            >
+                Reset
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         STATISTICS
+    ========================================== -->
+
+    <section class="stats-grid">
+
+        <div class="stat-card blue">
+            <span>Accesses</span>
+            <strong id="accessCount">0</strong>
+        </div>
+
+        <div class="stat-card red">
+            <span>Page Faults</span>
+            <strong id="faultCount">0</strong>
+        </div>
+
+        <div class="stat-card green">
+            <span>Page Hits</span>
+            <strong id="hitCount">0</strong>
+        </div>
+
+        <div class="stat-card purple">
+            <span>Hit Ratio</span>
+            <strong id="hitRatio">0%</strong>
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         ADDRESS TRANSLATION
+    ========================================== -->
+
+    <section class="panel translation-panel">
+
+        <div class="panel-heading">
+
+            <div>
+                <h2>Virtual Address Translation</h2>
+
+                <p>
+                    Enter a virtual address and translate it
+                    through the page table.
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="address-input-area">
+
+            <div class="input-group address-input">
+
+                <label for="virtualAddress">
+                    Virtual Address
+                </label>
+
+                <input
+                    type="number"
+                    id="virtualAddress"
+                    value="770"
+                    min="0"
+                >
+
+            </div>
+
+
+            <button
+                id="translateBtn"
+                class="btn translate"
+            >
+                Translate Address
+            </button>
+
+        </div>
+
+
+        <!-- Address breakdown -->
+
+        <div class="translation-flow">
+
+            <div
+                id="virtualAddressBox"
+                class="translation-box active"
+            >
+
+                <span>VIRTUAL ADDRESS</span>
+
+                <strong id="displayVirtualAddress">
+                    770
+                </strong>
+
+            </div>
+
+
+            <div class="flow-arrow">
+                →
+            </div>
+
+
+            <div
+                id="pageNumberBox"
+                class="translation-box"
+            >
+
+                <span>PAGE NUMBER</span>
+
+                <strong id="displayPageNumber">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div class="flow-arrow">
+                +
+            </div>
+
+
+            <div
+                id="offsetBox"
+                class="translation-box"
+            >
+
+                <span>OFFSET</span>
+
+                <strong id="displayOffset">
+                    -
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="translationStatus"
+            class="translation-status"
+        >
+            Enter a virtual address and click
+            <b>Translate Address</b>.
+        </div>
+
+
+        <!-- Result -->
+
+        <div class="result-grid">
+
+            <div class="result-card">
+
+                <span>Page Number</span>
+
+                <strong id="resultPage">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div class="result-card">
+
+                <span>Offset</span>
+
+                <strong id="resultOffset">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div class="result-card">
+
+                <span>Frame Number</span>
+
+                <strong id="resultFrame">
+                    -
+                </strong>
+
+            </div>
+
+
+            <div class="result-card physical">
+
+                <span>Physical Address</span>
+
+                <strong id="resultPhysical">
+                    -
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- Formula -->
+
+        <div
+            id="formulaBox"
+            class="formula-box"
+        >
+            Physical Address =
+            (Frame Number × Page Size) + Offset
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         TRANSLATION STEPS
+    ========================================== -->
+
+    <section class="panel">
+
+        <div class="panel-heading">
+
+            <div>
+                <h2>Translation Process</h2>
+
+                <p>
+                    Follow every step of the address translation.
+                </p>
+            </div>
+
+        </div>
+
+
+        <div class="process">
+
+            <div
+                id="step1"
+                class="process-step"
+            >
+
+                <div class="step-number">
+                    1
+                </div>
+
+                <div>
+                    <strong>Virtual Address</strong>
+
+                    <span>
+                        Read the virtual address.
+                    </span>
+                </div>
+
+            </div>
+
+
+            <div class="process-line"></div>
+
+
+            <div
+                id="step2"
+                class="process-step"
+            >
+
+                <div class="step-number">
+                    2
+                </div>
+
+                <div>
+                    <strong>Page Number</strong>
+
+                    <span>
+                        Page = Address ÷ Page Size
+                    </span>
+                </div>
+
+            </div>
+
+
+            <div class="process-line"></div>
+
+
+            <div
+                id="step3"
+                class="process-step"
+            >
+
+                <div class="step-number">
+                    3
+                </div>
+
+                <div>
+                    <strong>Page Table Lookup</strong>
+
+                    <span>
+                        Find Page → Frame mapping.
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="process-line"></div>
+
+
+            <div
+                id="step4"
+                class="process-step"
+            >
+
+                <div class="step-number">
+                    4
+                </div>
+
+                <div>
+                    <strong>Frame Number</strong>
+
+                    <span>
+                        Obtain the physical frame.
+                    </span>
+                </div>
+
+            </div>
+
+
+            <div class="process-line"></div>
+
+
+            <div
+                id="step5"
+                class="process-step"
+            >
+
+                <div class="step-number">
+                    5
+                </div>
+
+                <div>
+                    <strong>Physical Address</strong>
+
+                    <span>
+                        Frame × Page Size + Offset
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         PAGE TABLE
+    ========================================== -->
+
+    <section class="panel">
+
+        <div class="panel-heading">
+
+            <div>
+
+                <h2>Page Table</h2>
+
+                <p>
+                    Virtual page to physical frame mapping
+                </p>
+
+            </div>
+
+            <span class="badge">
+                PAGE TABLE
+            </span>
+
+        </div>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Page</th>
+                        <th>Frame</th>
+                        <th>Valid Bit</th>
+                        <th>Status</th>
+                        <th>Last Used</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="pageTableBody">
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         VIRTUAL MEMORY
+    ========================================== -->
+
+    <section class="panel">
+
+        <div class="panel-heading">
+
+            <div>
+
+                <h2>Virtual Memory</h2>
+
+                <p>
+                    Click any page to translate an address from it.
+                </p>
+
+            </div>
+
+            <span class="badge virtual">
+                VIRTUAL
+            </span>
+
+        </div>
+
+
+        <div
+            id="virtualMemory"
+            class="memory-grid"
+        ></div>
+
+    </section>
+
+
+    <!-- =========================================
+         PHYSICAL MEMORY
+    ========================================== -->
+
+    <section class="panel">
+
+        <div class="panel-heading">
+
+            <div>
+
+                <h2>Physical Memory</h2>
+
+                <p>
+                    Pages currently loaded in physical frames.
+                </p>
+
+            </div>
+
+            <span class="badge physical">
+                RAM
+            </span>
+
+        </div>
+
+
+        <div
+            id="physicalMemory"
+            class="memory-grid"
+        ></div>
+
+    </section>
+
+
+    <!-- =========================================
+         REFERENCE STRING
+    ========================================== -->
+
+    <section class="panel">
+
+        <div class="panel-heading">
+
+            <div>
+
+                <h2>Reference String</h2>
+
+                <p>
+                    Memory access sequence
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div
+            id="referenceList"
+            class="reference-list"
+        ></div>
+
+
+        <div class="reference-controls">
+
+            <div class="input-group reference-input">
+
+                <label for="referenceInput">
+                    Reference String
+                </label>
+
+                <input
+                    id="referenceInput"
+                    type="text"
+                    value="0 1 2 3 0 4 1 2 5 0"
+                >
+
+            </div>
+
+
+            <button
+                id="loadReferenceBtn"
+                class="btn secondary"
+            >
+                Load Reference
+            </button>
+
+
+            <button
+                id="stepBtn"
+                class="btn primary"
+            >
+                Next Memory Access
+            </button>
+
+
+            <button
+                id="autoBtn"
+                class="btn auto"
+            >
+                ▶ Auto Run
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- =========================================
+         LOG
+    ========================================== -->
+
+    <section class="panel">
+
+        <div class="panel-heading">
+
+            <div>
+
+                <h2>Simulation Log</h2>
+
+                <p>
+                    Detailed memory operations
+                </p>
+
+            </div>
+
+            <button
+                id="clearLogBtn"
+                class="clear-log"
+            >
+                Clear
+            </button>
+
+        </div>
+
+
+        <div
+            id="log"
+            class="log"
+        ></div>
+
+    </section>
+
+</main>
+
+
+<footer>
+
+    <p>
+        Virtual Memory Simulator
+        <span>•</span>
+        Address Translation Demonstration
+    </p>
+
+</footer>
+
+
+<script src="javascript.js"></script>
+
+</body>
+</html>
